@@ -22,6 +22,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -32,18 +33,30 @@ import org.onebusaway.gtfs.model.AgencyAndId;
 import org.opentripplanner.api.model.alertpatch.AlertPatchCreationResponse;
 import org.opentripplanner.api.model.alertpatch.AlertPatchResponse;
 import org.opentripplanner.api.model.alertpatch.AlertPatchSet;
+import org.opentripplanner.api.model.alertpatch.NearestStreetResponse;
+import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.routing.alertpatch.AlertPatch;
-import org.opentripplanner.routing.services.AlertPatchService;
+import org.opentripplanner.routing.edgetype.StreetEdge;
+import org.opentripplanner.standalone.OTPServer;
+import org.opentripplanner.standalone.Router;
+import org.opentripplanner.util.PolylineEncoder;
+import org.opentripplanner.util.model.EncodedPolylineBean;
+
+import com.vividsolutions.jts.geom.Coordinate;
 
 @Path("/patch")
 @XmlRootElement
 public class AlertPatcher {
 
-    @Context AlertPatchService alertPatchService; // FIXME inject Application
+    Router router;
+
+    public AlertPatcher(@Context OTPServer otpServer, @PathParam("routerId") String routerId) {
+        router = otpServer.getRouter(routerId);
+    }
 
     /**
      * Return a list of all patches that apply to a given stop
-     *
+     * 
      * @return Returns either an XML or a JSON document, depending on the HTTP Accept header of the
      *         client making the request.
      */
@@ -54,7 +67,8 @@ public class AlertPatcher {
             @QueryParam("id") String id) {
 
         AlertPatchResponse response = new AlertPatchResponse();
-        Collection<AlertPatch> alertPatches = alertPatchService.getStopPatches(new AgencyAndId(agency, id));
+        Collection<AlertPatch> alertPatches = router.graph.getAlertPatchService().getStopPatches(
+                new AgencyAndId(agency, id));
         for (AlertPatch alertPatch : alertPatches) {
             response.addAlertPatch(alertPatch);
         }
@@ -63,7 +77,7 @@ public class AlertPatcher {
 
     /**
      * Return a list of all patches that apply to a given route
-     *
+     * 
      * @return Returns either an XML or a JSON document, depending on the HTTP Accept header of the
      *         client making the request.
      */
@@ -74,8 +88,8 @@ public class AlertPatcher {
             @QueryParam("id") String id) {
 
         AlertPatchResponse response = new AlertPatchResponse();
-        Collection<AlertPatch> alertPatches =
-                alertPatchService.getRoutePatches(new AgencyAndId(agency, id));
+        Collection<AlertPatch> alertPatches = router.graph.getAlertPatchService().getRoutePatches(
+                new AgencyAndId(agency, id));
         for (AlertPatch alertPatch : alertPatches) {
             response.addAlertPatch(alertPatch);
         }
@@ -102,9 +116,33 @@ public class AlertPatcher {
             }
         }
         for (AlertPatch alertPatch : alertPatches.alertPatches) {
-            alertPatchService.apply(alertPatch);
+            router.graph.getAlertPatchService().apply(alertPatch);
         }
         response.status = "OK";
+        return response;
+    }
+
+    /**
+     * Returns the streetEdge on witch a location would project in car mode if a streetPatch was
+     * created usefull for user created patches
+     * 
+     * @return Returns either an XML or a JSON document, depending on the HTTP Accept header of the
+     *         client making the request.
+     */
+    @GET
+    @Path("/nearestStreetEdge")
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML + Q, MediaType.TEXT_XML + Q })
+    public NearestStreetResponse getNearestStreetEdge(@QueryParam("lon") Double lon,
+            @QueryParam("lat") Double lat) {
+        NearestStreetResponse response = new NearestStreetResponse();
+        GenericLocation location = new GenericLocation(new Coordinate(lon, lat));
+        StreetEdge edge = router.graph.getStreetPatchService().getStreetFromLocation(location);
+        if (edge != null) {
+            response.name = edge.getName();
+            EncodedPolylineBean geometry = PolylineEncoder.createEncodings(edge.getGeometry());
+            response.geometry = geometry.getPoints();
+
+        }
         return response;
     }
 }

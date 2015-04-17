@@ -34,14 +34,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.prefs.Preferences;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.*;
 import org.joda.time.DateTime;
 import org.onebusaway.gtfs.impl.calendar.CalendarServiceImpl;
 import org.onebusaway.gtfs.model.Agency;
@@ -58,14 +55,18 @@ import org.opentripplanner.common.geometry.GraphUtils;
 import org.opentripplanner.graph_builder.annotation.GraphBuilderAnnotation;
 import org.opentripplanner.graph_builder.annotation.NoFutureDates;
 import org.opentripplanner.model.GraphBundle;
-import org.opentripplanner.profile.StopTreeCache;
 import org.opentripplanner.routing.alertpatch.AlertPatch;
+import org.opentripplanner.routing.alertpatch.StreetPatch;
 import org.opentripplanner.routing.core.MortonVertexComparatorFactory;
 import org.opentripplanner.routing.core.TransferTable;
 import org.opentripplanner.routing.edgetype.EdgeWithCleanup;
 import org.opentripplanner.routing.edgetype.StreetEdge;
 import org.opentripplanner.routing.edgetype.TripPattern;
+import org.opentripplanner.routing.impl.AlertPatchServiceImpl;
 import org.opentripplanner.routing.impl.DefaultStreetVertexIndexFactory;
+import org.opentripplanner.routing.impl.StreetPatchServiceImpl;
+import org.opentripplanner.routing.services.AlertPatchService;
+import org.opentripplanner.routing.services.StreetPatchService;
 import org.opentripplanner.routing.services.StreetVertexIndexFactory;
 import org.opentripplanner.routing.services.StreetVertexIndexService;
 import org.opentripplanner.routing.services.notes.StreetNotesService;
@@ -78,6 +79,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -98,10 +106,16 @@ public class Graph implements Serializable {
 
     private final Map<Edge, Set<AlertPatch>> alertPatches = new HashMap<Edge, Set<AlertPatch>>(0);
 
+    private final Map<Edge, Set<StreetPatch>> streetPatches = new HashMap<Edge, Set<StreetPatch>>(0);
+
     private final Map<Edge, List<TurnRestriction>> turnRestrictions = Maps.newHashMap();
 
     public final StreetNotesService streetNotesService = new StreetNotesService();
 
+    private transient AlertPatchService alertPatchService;
+
+    private transient StreetPatchService streetPatchService;
+    
     // transit feed validity information in seconds since epoch
     private long transitServiceStarts = Long.MAX_VALUE;
 
@@ -245,6 +259,9 @@ public class Graph implements Serializable {
             synchronized (alertPatches) {   // This synchronization is somewhat silly because this
                 alertPatches.remove(e);     // method isn't thread-safe anyway, but it is consistent
             }
+            synchronized (streetPatches) {   // This synchronization is somewhat silly because this
+                streetPatches.remove(e);     // method isn't thread-safe anyway, but it is consistent
+            }
 
             turnRestrictions.remove(e);
             streetNotesService.removeStaticNotes(e);
@@ -382,6 +399,65 @@ public class Graph implements Serializable {
             }
         }
         return new AlertPatch[0];
+    }
+
+    /**
+     * Add an {@link StreetPatch} to the {@link StreetPatch} {@link Set} belonging to an {@link Edge}.
+     * @param edge
+     * @param streetPatch
+     */
+    public void addStreetPatch(Edge edge, StreetPatch streetPatch) {
+        if (edge == null || streetPatch == null) return;
+        synchronized (streetPatches) {
+            Set<StreetPatch> streetPatches = this.streetPatches.get(edge);
+            if (streetPatches == null) {
+                this.streetPatches.put(edge, Collections.singleton(streetPatch));
+            } else if (streetPatches instanceof HashSet) {
+                streetPatches.add(streetPatch);
+            } else {
+                streetPatches = new HashSet<StreetPatch>(streetPatches);
+                if (streetPatches.add(streetPatch)) {
+                    this.streetPatches.put(edge, streetPatches);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove an {@link StreetPatch} from the {@link StreetPatch} {@link Set} belonging to an
+     * {@link Edge}.
+     * @param edge
+     * @param alertPatch
+     */
+    public void removeStreetPatch(Edge edge, StreetPatch streetPatch) {
+        if (edge == null || streetPatch == null) return;
+        synchronized (streetPatches) {
+            Set<StreetPatch> streetPatches = this.streetPatches.get(edge);
+            if (streetPatches != null && streetPatches.contains(streetPatch)) {
+                if (streetPatches.size() < 2) {
+                    this.streetPatches.remove(edge);
+                } else {
+                    streetPatches.remove(streetPatch);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the {@link StreetPatch} {@link Set} that belongs to an {@link Edge} and build a new array.
+     * @param edge
+     * @return The {@link StreetPatch} array that belongs to the {@link Edge}
+     */
+    public StreetPatch[] getStreetPatches(Edge edge) {
+        if (edge != null) {
+            synchronized (streetPatches) {
+                Set<StreetPatch> streetPatches = this.streetPatches.get(edge);
+                if (streetPatches != null) {
+                    return streetPatches.toArray(new StreetPatch[streetPatches.size()]);
+                }
+            }
+        }
+        return new StreetPatch[0];
     }
 
     /**
@@ -970,6 +1046,17 @@ public class Graph implements Serializable {
     	
     	return this.sampleFactory;	
     }
-    
+   
+    public AlertPatchService getAlertPatchService() {
+        if (this.alertPatchService == null)
+            this.alertPatchService = new AlertPatchServiceImpl(this);
+        return this.alertPatchService;
+    }
+
+    public StreetPatchService getStreetPatchService() {
+        if (this.streetPatchService == null)
+            this.streetPatchService = new StreetPatchServiceImpl(this);
+        return this.streetPatchService;
+    }
    
 }

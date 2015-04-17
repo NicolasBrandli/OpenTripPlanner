@@ -15,9 +15,7 @@ package org.opentripplanner.routing.edgetype;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.opentripplanner.common.TurnRestriction;
@@ -25,6 +23,7 @@ import org.opentripplanner.common.TurnRestrictionType;
 import org.opentripplanner.common.geometry.CompactLineString;
 import org.opentripplanner.common.geometry.DirectionUtils;
 import org.opentripplanner.common.geometry.PackedCoordinateSequence;
+import org.opentripplanner.routing.alertpatch.StreetPatch;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.StateEditor;
@@ -477,6 +476,15 @@ public class StreetEdge extends Edge implements Cloneable {
      * the RoutingRequest, and return it in meters per second.
      */
     private double calculateCarSpeed(RoutingRequest options) {
+        if(options.getRoutingContext() != null) {
+            StreetPatch[] patches = options.getRoutingContext().graph.getStreetPatches(this);
+            for (StreetPatch p : patches) {
+                //
+                if(p.getCarSpeed() != -1 && (options.dateTime >= p.getTimePeriods().get(0).startTime && options.dateTime <= p.getTimePeriods().get(0).endTime)) {
+                    return p.getCarSpeed();
+                }
+            }
+        }
         return getCarSpeed();
     }
     
