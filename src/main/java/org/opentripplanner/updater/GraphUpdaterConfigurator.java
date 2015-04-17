@@ -13,15 +13,6 @@
 
 package org.opentripplanner.updater;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.updater.alerts.GtfsRealtimeAlertsUpdater;
 import org.opentripplanner.updater.bike_park.BikeParkUpdater;
@@ -33,6 +24,8 @@ import org.opentripplanner.updater.stoptime.WebsocketGtfsRealtimeUpdater;
 import org.opentripplanner.updater.street_notes.WinkkiPollingGraphUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Upon loading a Graph, configure/decorate it using a JSON tree from Jackson. This mainly involves starting
@@ -115,7 +108,12 @@ public abstract class GraphUpdaterConfigurator {
                 else if (type.equals("winkki-polling-updater")) {
                     updater = new WinkkiPollingGraphUpdater();
                 }
-            }
+                else if (type.equals("xml-polling-updater")) {
+                    updater = new GamEvtPollingGraphUpdater();
+                }
+                else if (type.equals("json-polling-updater")) {
+                    updater = new GamCarsPollingGraphUpdater();
+                }            }
 
             // Configure and activate the new updater.
             try {
