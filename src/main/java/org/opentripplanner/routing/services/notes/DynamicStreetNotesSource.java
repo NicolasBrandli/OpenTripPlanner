@@ -13,12 +13,20 @@
 
 package org.opentripplanner.routing.services.notes;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
+
+import org.opentripplanner.routing.alertpatch.Alert;
 import org.opentripplanner.routing.edgetype.PartialStreetEdge;
 import org.opentripplanner.routing.graph.Edge;
+import org.opentripplanner.util.PolylineEncoder;
+import org.opentripplanner.util.model.EncodedPolylineBean;
 
-import java.util.Set;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 
 /**
  * A notes source of dynamic notes, Usually created and modified by a single GraphUpdater.
@@ -62,4 +70,38 @@ public class DynamicStreetNotesSource implements StreetNotesSource {
     public void setNotes(SetMultimap<Edge, MatcherAndAlert> notes){
         this.notesForEdge = notes;
     }
+    
+    /**
+     * Return the set of updates applied.
+     *
+     * @return The set of updates applied.
+     */
+    public Collection<HashMap<String, Object>> getUpdates() {
+        
+        Collection<HashMap<String, Object>> updates = new ArrayList<HashMap<String,Object>>();
+        
+        Iterator<Edge> keys = notesForEdge.keySet().iterator();
+        while (keys.hasNext()) {
+            HashMap<String,Object> update = new HashMap<String,Object>();
+            
+            Edge edge = keys.next();
+            
+            EncodedPolylineBean geometry = PolylineEncoder.createEncodings(edge.getGeometry());
+            update.put("name",edge.getName());
+            update.put("geom",geometry);
+            
+            Collection<Alert> alerts = new ArrayList<Alert>();
+            Iterator<MatcherAndAlert> listNotes = notesForEdge.get(edge).iterator();
+            while (listNotes.hasNext()) {
+                MatcherAndAlert ma = listNotes.next();
+                alerts.add(ma.getNote());
+            }
+            
+            update.put("alerts",alerts);
+            updates.add(update);
+        }
+        
+        return updates;
+    }
+
 }
