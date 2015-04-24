@@ -13,6 +13,7 @@
 
 package org.opentripplanner.graph_builder.services.osm;
 
+import org.opentripplanner.graph_builder.module.osm.GAMCustomNamer;
 import org.opentripplanner.graph_builder.module.osm.PortlandCustomNamer;
 import org.opentripplanner.openstreetmap.model.OSMWithTags;
 import org.opentripplanner.routing.edgetype.StreetEdge;
@@ -61,6 +62,9 @@ public interface CustomNamer {
             switch (type) {
             case "portland":
                 retval = new PortlandCustomNamer();
+                break;
+            case "gam":
+                retval = new GAMCustomNamer();
                 break;
             default:
                 throw new IllegalArgumentException(String.format("Unknown osmNaming type: '%s'",
