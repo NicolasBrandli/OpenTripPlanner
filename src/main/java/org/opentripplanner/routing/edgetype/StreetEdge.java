@@ -479,7 +479,7 @@ public class StreetEdge extends Edge implements Cloneable {
         if(options.getRoutingContext() != null) {
             StreetPatch[] patches = options.getRoutingContext().graph.getStreetPatches(this);
             for (StreetPatch p : patches) {
-                //
+                //TODO do something if multiple patches on one streetEdge
                 if(p.getCarSpeed() != -1 && (options.dateTime >= p.getTimePeriods().get(0).startTime && options.dateTime <= p.getTimePeriods().get(0).endTime)) {
                     return p.getCarSpeed();
                 }
