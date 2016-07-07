@@ -430,18 +430,13 @@ public class Timetable implements Serializable {
 
                         if (update.hasArrival()) {
                             StopTimeEvent arrival = update.getArrival();
-                            if (arrival.hasDelay()) {
-                                delay = arrival.getDelay();
-                                if (arrival.hasTime()) {
-                                    newTimes.updateArrivalTime(i,
-                                            (int) (arrival.getTime() - today));
-                                } else {
-                                    newTimes.updateArrivalDelay(i, delay);
-                                }
-                            } else if (arrival.hasTime()) {
+                            if (arrival.hasTime()) {
                                 newTimes.updateArrivalTime(i,
                                         (int) (arrival.getTime() - today));
                                 delay = newTimes.getArrivalDelay(i);
+                            } else if (arrival.hasDelay()) {
+                                delay = arrival.getDelay();
+                                newTimes.updateArrivalDelay(i, delay);
                             } else {
                                 LOG.error("Arrival time at index {} is erroneous.", i);
                                 return null;
@@ -456,18 +451,13 @@ public class Timetable implements Serializable {
 
                         if (update.hasDeparture()) {
                             StopTimeEvent departure = update.getDeparture();
-                            if (departure.hasDelay()) {
-                                delay = departure.getDelay();
-                                if (departure.hasTime()) {
-                                    newTimes.updateDepartureTime(i,
-                                            (int) (departure.getTime() - today));
-                                } else {
-                                    newTimes.updateDepartureDelay(i, delay);
-                                }
-                            } else if (departure.hasTime()) {
+                            if (departure.hasTime()) {
                                 newTimes.updateDepartureTime(i,
                                         (int) (departure.getTime() - today));
                                 delay = newTimes.getDepartureDelay(i);
+                            } else if (departure.hasDelay()) {
+                                delay = departure.getDelay();
+                                newTimes.updateDepartureDelay(i, delay);                                
                             } else {
                                 LOG.error("Departure time at index {} is erroneous.", i);
                                 return null;
