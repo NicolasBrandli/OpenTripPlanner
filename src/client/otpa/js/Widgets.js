@@ -340,11 +340,11 @@ otp.analyst.ParamsWidget = otp.Class({
         var hasTransit = modes.indexOf("TRANSIT") > -1;
         if (hasWalk) {
             widget.maxWalkDiv.show();
-            widget.dataTypeDiv.show();
+            widget.dataTypeDiv?widget.dataTypeDiv.show():'';
         } else {
             widget.maxWalkDiv.hide();
-            widget.dataTypeDiv.hide();
-            widget.dataTypeInput.val("TIME");
+            widget.dataTypeDiv?widget.dataTypeDiv.hide():'';
+            widget.dataTypeInput?widget.dataTypeInput.val("TIME"):'';
         }
         if (hasBike) {
             widget.maxBikeDiv.show();
