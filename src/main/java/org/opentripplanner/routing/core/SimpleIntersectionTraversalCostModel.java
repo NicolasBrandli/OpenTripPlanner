@@ -24,24 +24,24 @@ public class SimpleIntersectionTraversalCostModel extends AbstractIntersectionTr
     // Constants for when there is a traffic light.
 
     /** Expected time it takes to make a right at a light. */
-    private Double expectedRightAtLightTimeSec = 15.0;
+    private Double expectedRightAtLightTimeSec = 22.0;//27.0;//15.0;
 
     /** Expected time it takes to continue straight at a light. */
-    private Double expectedStraightAtLightTimeSec = 15.0;
+    private Double expectedStraightAtLightTimeSec = 19.0;//24.0;//15.0;
 
     /** Expected time it takes to turn left at a light. */
-    private Double expectedLeftAtLightTimeSec = 15.0;
+    private Double expectedLeftAtLightTimeSec = 21.4;//26.4;//15.0;
 
     // Constants for when there is no traffic light
 
     /** Expected time it takes to make a right without a stop light. */
-    private Double expectedRightNoLightTimeSec = 8.0;
+    private Double expectedRightNoLightTimeSec = 4.0;//8.0;
 
     /** Expected time it takes to continue straight without a stop light. */
-    private Double expectedStraightNoLightTimeSec = 5.0;
+    private Double expectedStraightNoLightTimeSec = 3.2;//5.0;
 
     /** Expected time it takes to turn left without a stop light. */
-    private Double expectedLeftNoLightTimeSec = 8.0;
+    private Double expectedLeftNoLightTimeSec = 10.67;//8.0;
 
     @Override
     public double computeTraversalCost(IntersectionVertex v, StreetEdge from, StreetEdge to, TraverseMode mode,
@@ -53,13 +53,29 @@ public class SimpleIntersectionTraversalCostModel extends AbstractIntersectionTr
         }
 
         // Non-driving cases are much simpler. Handled generically in the base class.
-        if (!mode.isDriving()) {
-            return computeNonDrivingTraversalCost(v, from, to, fromSpeed, toSpeed);
-        }
+        //if (!mode.isDriving()) {
+        //    return computeNonDrivingTraversalCost(v, from, to, fromSpeed, toSpeed);
+        //}
 
         double turnCost = 0;
 
         int turnAngle = calculateTurnAngle(from, to, options);
+        
+        if (!mode.isDriving()) {
+            if (v.trafficLight) {
+                if (isRightTurn(turnAngle)) {
+                    turnCost = 17.0;//expectedRightAtLightTimeSec;
+                } else if (isLeftTurn(turnAngle)) {
+                    turnCost = 14.0;//expectedLeftAtLightTimeSec;
+                } else {
+                    turnCost = 16.4;//expectedStraightAtLightTimeSec;
+                }               
+            } else {
+                turnCost = computeNonDrivingTraversalCost(v, from, to, fromSpeed, toSpeed);
+            }
+            return turnCost;
+        }
+        
         if (v.trafficLight) {
             // Use constants that apply when there are stop lights.
             if (isRightTurn(turnAngle)) {
@@ -70,7 +86,6 @@ public class SimpleIntersectionTraversalCostModel extends AbstractIntersectionTr
                 turnCost = expectedStraightAtLightTimeSec;
             }
         } else {
-
             //assume highway vertex
             if(from.getCarSpeed()>25 && to.getCarSpeed()>25) {
                 return 0;

@@ -431,6 +431,17 @@ public class Timetable implements Serializable {
                         if (update.hasArrival()) {
                             StopTimeEvent arrival = update.getArrival();
                             if (arrival.hasTime()) {
+                            /*
+                            if (arrival.hasDelay()) {
+                                delay = arrival.getDelay();
+                                if (arrival.hasTime()) {
+                                    newTimes.updateArrivalTime(i,
+                                            (int) (arrival.getTime() - today));
+                                } else {
+                                    newTimes.updateArrivalDelay(i, delay);
+                                }
+                            } else
+                            */
                                 newTimes.updateArrivalTime(i,
                                         (int) (arrival.getTime() - today));
                                 delay = newTimes.getArrivalDelay(i);
@@ -452,6 +463,17 @@ public class Timetable implements Serializable {
                         if (update.hasDeparture()) {
                             StopTimeEvent departure = update.getDeparture();
                             if (departure.hasTime()) {
+                            /*
+                            if (departure.hasDelay()) {
+                                delay = departure.getDelay();
+                                if (departure.hasTime()) {
+                                    newTimes.updateDepartureTime(i,
+                                            (int) (departure.getTime() - today));
+                                } else {
+                                    newTimes.updateDepartureDelay(i, delay);
+                                }
+                            } else
+                            */
                                 newTimes.updateDepartureTime(i,
                                         (int) (departure.getTime() - today));
                                 delay = newTimes.getDepartureDelay(i);
@@ -492,7 +514,7 @@ public class Timetable implements Serializable {
             }
         }
         if (!newTimes.timesIncreasing()) {
-            LOG.error("TripTimes are non-increasing after applying GTFS-RT delay propagation.");
+            LOG.error("TripTimes are non-increasing after applying GTFS-RT delay propagation. {} on route {}", tripId, tripDescriptor.getRouteId());
             return null;
         }
 

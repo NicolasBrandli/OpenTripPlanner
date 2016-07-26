@@ -578,7 +578,7 @@ public class OpenStreetMapModule implements GraphBuilderModule {
                 Long startNode = null;
                 // where the current edge should start
                 OSMNode osmStartNode = null;
-
+                Boolean reportTrafficSignal = false;
                 for (int i = 0; i < nodes.size() - 1; i++) {
                     OSMNode segmentStartOSMNode = osmdb.getNode(nodes.get(i));
                     if (segmentStartOSMNode == null) {
@@ -617,6 +617,11 @@ public class OpenStreetMapModule implements GraphBuilderModule {
                         segmentCoordinates.clear();
                     } else {
                         segmentCoordinates.add(getCoordinate(osmEndNode));
+                        
+                        // on non intersection node we keep traffic signal info for later use
+                        if(osmEndNode.hasTrafficLight()) {
+                            reportTrafficSignal = true;
+                        }
                         continue;
                     }
 
@@ -644,6 +649,9 @@ public class OpenStreetMapModule implements GraphBuilderModule {
                             elevationData.put(endEndpoint, elevation);
                         }
                     }
+                    //force traffic light because there was at least one on a non intersection node
+                    if(reportTrafficSignal) endEndpoint.trafficLight = true;
+                    
                     P2<StreetEdge> streets = getEdgesForStreet(startEndpoint, endEndpoint,
                             way, i, osmStartNode.getId(), osmEndNode.getId(), permissions, geometry);
 
