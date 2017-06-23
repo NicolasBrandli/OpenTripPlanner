@@ -400,7 +400,7 @@ public class Timetable implements Serializable {
             StopTimeUpdate update = updates.next();
 
             int numStops = newTimes.getNumStops();
-            Integer delay = null;
+            Integer delay = 0; //null;
 
             for (int i = 0; i < numStops; i++) {
                 boolean match = false;
@@ -453,11 +453,11 @@ public class Timetable implements Serializable {
                                 return null;
                             }
                         } else {
-                            if (delay == null) {
+                            /*if (delay == null) {
                                 newTimes.updateArrivalTime(i, TripTimes.UNAVAILABLE);
-                            } else {
+                            } else {*/
                                 newTimes.updateArrivalDelay(i, delay);
-                            }
+                            //}
                         }
 
                         if (update.hasDeparture()) {
@@ -485,11 +485,11 @@ public class Timetable implements Serializable {
                                 return null;
                             }
                         } else {
-                            if (delay == null) {
+                            /*if (delay == null) {
                                 newTimes.updateDepartureTime(i, TripTimes.UNAVAILABLE);
-                            } else {
+                            } else {*/
                                 newTimes.updateDepartureDelay(i, delay);
-                            }
+                            //}
                         }
                     }
 
@@ -499,17 +499,17 @@ public class Timetable implements Serializable {
                         update = null;
                     }
                 } else {
-                    if (delay == null) {
+                    /*if (delay == null) {
                         newTimes.updateArrivalTime(i, TripTimes.UNAVAILABLE);
                         newTimes.updateDepartureTime(i, TripTimes.UNAVAILABLE);
-                    } else {
+                    } else {*/
                         newTimes.updateArrivalDelay(i, delay);
                         newTimes.updateDepartureDelay(i, delay);
-                    }
+                    //}
                 }
             }
             if (update != null) {
-                LOG.error("Part of a TripUpdate object could not be applied successfully.");
+                LOG.error("Part of a TripUpdate object could not be applied successfully. {} on route {}", tripId, tripDescriptor.getRouteId());
                 return null;
             }
         }
