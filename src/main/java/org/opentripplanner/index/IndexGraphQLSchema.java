@@ -265,9 +265,10 @@ public class IndexGraphQLSchema {
             .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("parentStation")
                 .type(stopType)
-                .dataFetcher(environment -> index.stopForId.get(new AgencyAndId(
-                    ((Stop) environment.getSource()).getId().getAgencyId(),
-                    ((Stop) environment.getSource()).getParentStation())))
+                .dataFetcher(environment -> ((Stop) environment.getSource()).getParentStation() != null ?
+                        index.stationForId.get(new AgencyAndId(
+                            ((Stop) environment.getSource()).getId().getAgencyId(),
+                            ((Stop) environment.getSource()).getParentStation())) : null)
                 .build())
             .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("wheelchairBoarding")
