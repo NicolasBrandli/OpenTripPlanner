@@ -16,6 +16,7 @@ public class TripTimeShort {
 
     public static final int UNDEFINED = -1;
     public AgencyAndId stopId;
+	public int stopIndex;
     public int scheduledArrival = UNDEFINED ;
     public int scheduledDeparture = UNDEFINED ;
     public int realtimeArrival = UNDEFINED ;
@@ -35,6 +36,7 @@ public class TripTimeShort {
      */
     public TripTimeShort(TripTimes tt, int i, Stop stop) {
         stopId = stop.getId();
+        stopIndex = i;
         scheduledArrival   = tt.getScheduledArrivalTime(i);
         realtimeArrival    = tt.getArrivalTime(i);
         arrivalDelay       = tt.getArrivalDelay(i);
